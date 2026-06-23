@@ -1,0 +1,2 @@
+# FraudGuard-Machine-Learning-Based-Credit-Card-Fraud-Detection-System-
+Developed a machine learning-based fraud detection system to identify fraudulent credit card transactions in real time. Performed data preprocessing, feature engineering, and model training using Python and Scikit-learn. Built an interactive web application for instant fraud prediction, improving transaction security and reducing financial risk.

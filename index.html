@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FraudGuard — Credit Card Fraud Detection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #f4f6fb;
+  --surface:   #ffffff;
+  --border:    #e3e8f0;
+  --border2:   #cdd4e3;
+  --text:      #1a1f2e;
+  --text2:     #5a6380;
+  --text3:     #9aa3bb;
+  --blue:      #2563eb;
+  --blue-lt:   #eff4ff;
+  --blue-mid:  #dbeafe;
+  --red:       #dc2626;
+  --red-lt:    #fef2f2;
+  --red-mid:   #fee2e2;
+  --green:     #16a34a;
+  --green-lt:  #f0fdf4;
+  --green-mid: #dcfce7;
+  --amber:     #d97706;
+  --amber-lt:  #fffbeb;
+  --amber-mid: #fef3c7;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:    0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+  --radius:    12px;
+  --radius-sm: 8px;
+  --font:      'Outfit', sans-serif;
+  --mono:      'JetBrains Mono', monospace;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── LAYOUT ─────────────────────────────────────────── */
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 20px; }
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 50;
+  box-shadow: var(--shadow-sm);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 18px; color: var(--text);
+  text-decoration: none;
+}
+.brand-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--blue); display: flex; align-items: center;
+  justify-content: center; font-size: 17px; flex-shrink: 0;
+}
+.model-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--green-lt); border: 1px solid var(--green-mid);
+  border-radius: 100px; padding: 5px 13px; font-size: 13px;
+  color: var(--green); font-weight: 500;
+}
+.model-pill::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── HERO STRIP ─────────────────────────────────────── */
+.hero {
+  background: var(--blue); color: #fff;
+  padding: 32px 0;
+}
+.hero-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px;
+}
+.hero h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.hero p  { font-size: 15px; opacity: .85; max-width: 480px; }
+.hero-stats {
+  display: flex; gap: 20px; flex-shrink: 0;
+}
+.hero-stat {
+  background: rgba(255,255,255,.15); border-radius: var(--radius-sm);
+  padding: 12px 20px; text-align: center; backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.2);
+  min-width: 100px;
+}
+.hero-stat .val {
+  font-size: 22px; font-weight: 700; font-family: var(--mono);
+  display: block;
+}
+.hero-stat .lbl { font-size: 12px; opacity: .8; }
+
+/* ── SECTION ─────────────────────────────────────────── */
+.section { padding: 28px 0; }
+.section + .section { border-top: 1px solid var(--border); }
+.section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.section-title {
+  font-size: 17px; font-weight: 600; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title .icon {
+  width: 30px; height: 30px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+.icon-blue  { background: var(--blue-lt);  }
+.icon-red   { background: var(--red-lt);   }
+.icon-green { background: var(--green-lt); }
+.section-sub { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+/* ── CARDS ───────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-lbl  { font-size: 12px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.stat-val  { font-size: 28px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.stat-sub  { font-size: 12px; color: var(--text3); margin-top: 5px; }
+.stat-blue  { color: var(--blue); }
+.stat-red   { color: var(--red);  }
+.stat-green { color: var(--green);}
+.stat-amber { color: var(--amber);}
+
+/* ── TABS ─────────────────────────────────────────────── */
+.tabs {
+  display: flex; gap: 6px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 5px; width: fit-content;
+}
+.tab-btn {
+  padding: 8px 20px; border-radius: 6px; cursor: pointer;
+  font-size: 14px; font-weight: 500; border: none;
+  background: transparent; color: var(--text2);
+  transition: all .18s; font-family: var(--font);
+}
+.tab-btn:hover  { color: var(--text); background: var(--border); }
+.tab-btn.active {
+  background: var(--surface); color: var(--blue);
+  font-weight: 600; box-shadow: var(--shadow-sm);
+}
+
+/* ── FILTER BAR ──────────────────────────────────────── */
+.filter-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.search-wrap {
+  position: relative; flex: 1; min-width: 200px;
+}
+.search-wrap input {
+  width: 100%; padding: 9px 14px 9px 38px;
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px; color: var(--text);
+  background: var(--surface); outline: none; transition: border-color .18s;
+}
+.search-wrap input:focus { border-color: var(--blue); }
+.search-wrap .search-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: 15px; pointer-events: none;
+}
+select.filter-sel {
+  padding: 9px 14px; border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); font-family: var(--font);
+  font-size: 14px; color: var(--text2); background: var(--surface);
+  outline: none; cursor: pointer; transition: border-color .18s;
+}
+select.filter-sel:focus { border-color: var(--blue); }
+.count-badge {
+  font-size: 13px; color: var(--text3); white-space: nowrap;
+  font-family: var(--mono);
+}
+
+/* ── TABLE ───────────────────────────────────────────── */
+.table-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; background: var(--surface); box-shadow: var(--shadow-sm);
+}
+.table-scroll { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+thead { position: sticky; top: 0; z-index: 2; }
+thead th {
+  background: var(--bg); padding: 11px 14px;
+  text-align: left; font-size: 12px; font-weight: 600;
+  color: var(--text3); text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody td {
+  padding: 11px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text2); vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f8f9fc; }
+.td-id   { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+.td-card { font-family: var(--mono); font-size: 13px; }
+.td-amt  { font-family: var(--mono); font-weight: 500; color: var(--text); }
+.td-time { font-size: 13px; white-space: nowrap; }
+
+/* ── BADGES ──────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.badge-fraud {
+  background: var(--red-mid); color: var(--red);
+  border: 1px solid #fca5a5;
+}
+.badge-legit {
+  background: var(--green-mid); color: var(--green);
+  border: 1px solid #86efac;
+}
+.badge-high   { background: var(--red-lt);   color: var(--red);   border: 1px solid #fca5a5; font-size:11px; }
+.badge-medium { background: var(--amber-lt); color: var(--amber); border: 1px solid #fcd34d; font-size:11px; }
+.badge-low    { background: var(--green-lt); color: var(--green); border: 1px solid #86efac; font-size:11px; }
+
+/* ── PROB BAR ────────────────────────────────────────── */
+.prob-cell { display: flex; align-items: center; gap: 8px; }
+.prob-track {
+  width: 70px; height: 6px; background: var(--border);
+  border-radius: 3px; overflow: hidden; flex-shrink: 0;
+}
+.prob-fill { height: 100%; border-radius: 3px; }
+.prob-text { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+
+/* ── ACTUAL LABEL (test mode) ────────────────────────── */
+.actual-match   { color: var(--green); font-weight: 600; font-size: 12px; }
+.actual-miss    { color: var(--red);   font-weight: 600; font-size: 12px; }
+.actual-unknown { color: var(--text3); font-size: 12px; }
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 20px; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 14px; font-weight: 600; border: none;
+  transition: all .18s; font-family: var(--font);
+}
+.btn-primary {
+  background: var(--blue); color: #fff;
+  box-shadow: 0 2px 8px rgba(37,99,235,.25);
+}
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ghost {
+  background: var(--surface); color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border); background: var(--bg); }
+
+/* ── LOADER ──────────────────────────────────────────── */
+.loader-overlay {
+  position: fixed; inset: 0; background: rgba(244,246,251,.8);
+  display: none; align-items: center; justify-content: center;
+  z-index: 100; backdrop-filter: blur(3px);
+}
+.loader-overlay.on { display: flex; }
+.loader-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 36px 48px; text-align: center;
+  box-shadow: var(--shadow);
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border2);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .75s linear infinite; margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-txt { color: var(--text2); font-size: 14px; }
+
+/* ── EMPTY / ERROR ───────────────────────────────────── */
+.empty {
+  text-align: center; padding: 48px 24px;
+  color: var(--text3); font-size: 14px;
+}
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+/* ── TOAST ───────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--text); color: #fff;
+  border-radius: var(--radius-sm); padding: 12px 20px;
+  font-size: 14px; z-index: 200;
+  transform: translateY(60px); opacity: 0;
+  transition: all .25s; pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── RESULT PANEL (scan single) ──────────────────────── */
+.result-banner {
+  border-radius: var(--radius); padding: 20px 24px;
+  display: flex; align-items: center; gap: 20px;
+  border: 2px solid; transition: all .3s;
+}
+.result-banner.fraud { background: var(--red-lt);   border-color: #fca5a5; }
+.result-banner.legit { background: var(--green-lt); border-color: #86efac; }
+.result-icon { font-size: 36px; flex-shrink: 0; }
+.result-title { font-size: 20px; font-weight: 700; }
+.result-title.fraud { color: var(--red); }
+.result-title.legit { color: var(--green); }
+.result-sub   { font-size: 14px; color: var(--text2); margin-top: 2px; }
+
+/* ── SCROLLBAR ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 760px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .hero-inner { flex-direction: column; }
+  .hero-stats { width: 100%; justify-content: space-between; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div class="loader-overlay" id="loader">
+  <div class="loader-box">
+    <div class="spinner"></div>
+    <div class="loader-txt" id="loaderTxt">Scanning transactions...</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <div class="brand-icon">🛡</div>
+      FraudGuard
+    </div>
+    <div class="model-pill" id="modelPill">Loading…</div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap hero-inner">
+    <div>
+      <h1>Credit Card Fraud Detection</h1>
+      <p>Logistic Regression model pre-trained and ready. Scan your transaction data instantly — no setup needed.</p>
+    </div>
+    <div class="hero-stats" id="heroStats">
+      <div class="hero-stat"><span class="val" id="hAuc">—</span><span class="lbl">ROC-AUC</span></div>
+      <div class="hero-stat"><span class="val" id="hThresh">—</span><span class="lbl">Threshold</span></div>
+      <div class="hero-stat"><span class="val" id="hF1">—</span><span class="lbl">F1 Score</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div class="wrap">
+
+    <!-- SECTION 1: DATASET OVERVIEW -->
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <div class="icon icon-blue">📁</div>
+            Dataset Overview
+          </div>
+          <div class="section-sub">Two ready-to-use datasets — pick one to scan</div>
+        </div>
+        <!-- Tab switcher -->
+        <div class="tabs">
+          <button class="tab-btn active" id="tabMain" onclick="switchDataset('main')">
+            📊 Main Dataset
+          </button>
+          <button class="tab-btn" id="tabTest" onclick="switchDataset('test')">
+            🧪 Test & Verify
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+          <div class="stat-lbl">Total Transactions</div>
+          <div class="stat-val stat-blue" id="sTotal">—</div>
+          <div class="stat-sub" id="sSource">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Fraud Detected</div>
+          <div class="stat-val stat-red" id="sFraud">—</div>
+          <div class="stat-sub" id="sFraudPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Legitimate</div>
+          <div class="stat-val stat-green" id="sLegit">—</div>
+          <div class="stat-sub" id="sLegitPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-lbl">Model Accuracy</div>
+          <div class="stat-val stat-amber" id="sAcc">—</div>
+          <div class="stat-sub" id="sAccSub">on test set</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: TRANSACTION TABLE -->
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <div class="icon icon-red">🔍</div>
+            <span id="tableTitle">Transaction Scan</span>
+          </div>
+          <div class="section-sub" id="tableSub">All transactions classified in real-time</div>
+        </div>
+        <button class="btn btn-primary" id="scanBtn" onclick="scanTransactions()">
+          ▶ Scan Transactions
+        </button>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <span class="search-icon">🔎</span>
+          <input type="text" id="searchInput" placeholder="Search by ID, card, or merchant…"
+                 oninput="applyFilters()">
+        </div>
+        <select class="filter-sel" id="filterLabel" onchange="applyFilters()">
+          <option value="all">All Results</option>
+          <option value="FRAUD">Fraud Only</option>
+          <option value="LEGITIMATE">Legitimate Only</option>
+        </select>
+        <select class="filter-sel" id="filterRisk" onchange="applyFilters()">
+          <option value="all">All Risk Levels</option>
+          <option value="HIGH">High Risk</option>
+          <option value="MEDIUM">Medium Risk</option>
+          <option value="LOW">Low Risk</option>
+        </select>
+        <div class="count-badge" id="countBadge"></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table id="txTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Time</th>
+                <th>Card</th>
+                <th>Merchant</th>
+                <th>Amount</th>
+                <th>Result</th>
+                <th>Risk</th>
+                <th>Fraud Prob.</th>
+                <th id="thActual" style="display:none">Actual</th>
+              </tr>
+            </thead>
+            <tbody id="txBody">
+              <tr>
+                <td colspan="8">
+                  <div class="empty">
+                    <div class="empty-icon">📋</div>
+                    <p>Press <strong>Scan Transactions</strong> to classify the dataset.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- end table section -->
+
+    <!-- SECTION 3: MANUAL CHECK -->
+    <div class="section">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <div class="icon icon-green">✏️</div>
+            Check a Single Transaction
+          </div>
+          <div class="section-sub">Enter transaction details manually to get an instant fraud verdict</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px">
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Amount ($)</label>
+            <input class="form-input" id="inAmount" type="number" step="0.01" placeholder="e.g. 250.00" value="120.00">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Hour of Day (0–23)</label>
+            <input class="form-input" id="inHour" type="number" min="0" max="23" placeholder="e.g. 14" value="14">
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn btn-primary" onclick="scanSingle()" style="width:100%;justify-content:center">
+              🔍 Check Now
+            </button>
+          </div>
+          <div style="display:flex;align-items:flex-end">
+            <button class="btn btn-ghost" onclick="loadFraudExample()" style="width:100%;justify-content:center">
+              ⚠ Load Fraud Example
+            </button>
+          </div>
+        </div>
+        <div id="singleResult" style="display:none"></div>
+      </div>
+    </div>
+
+  </div><!-- end .wrap -->
+</main>
+
+<style>
+.form-input {
+  width: 100%; padding: 10px 14px;
+  border: 1px solid var(--border2); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px; color: var(--text);
+  background: var(--surface); outline: none; transition: border-color .18s;
+}
+.form-input:focus { border-color: var(--blue); }
+</style>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let allRecords = [];
+let currentSource = 'main';
+let isTestMode = false;
+
+// ── UTILS ──────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function setLoader(on, txt='Scanning transactions...') {
+  $('loader').classList.toggle('on', on);
+  $('loaderTxt').textContent = txt;
+}
+function toast(msg, ok=true) {
+  const el = $('toast');
+  el.textContent = (ok ? '✅ ' : '❌ ') + msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── INIT ───────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/api/summary').then(r => r.json());
+    // Topbar pill
+    $('modelPill').textContent = `${r.model.algorithm} · AUC ${r.model.roc_auc}`;
+    // Hero
+    $('hAuc').textContent    = r.model.roc_auc;
+    $('hThresh').textContent = r.model.threshold + '%';
+    $('hF1').textContent     = r.model.f1;
+    // Stats (pre-fill before scanning)
+    updateStatCards({
+      total: r.main_dataset.rows,
+      fraud_count: r.main_dataset.fraud,
+      legit_count: r.main_dataset.rows - r.main_dataset.fraud,
+      source: r.main_dataset.name
+    });
+    $('sAcc').textContent = r.model.roc_auc;
+  } catch(e) { console.error(e); }
+}
+
+function updateStatCards(data) {
+  $('sTotal').textContent   = data.total.toLocaleString();
+  $('sFraud').textContent   = data.fraud_count.toLocaleString();
+  $('sLegit').textContent   = data.legit_count.toLocaleString();
+  $('sFraudPct').textContent= `${(data.fraud_count/data.total*100).toFixed(1)}% of total`;
+  $('sLegitPct').textContent= `${(data.legit_count/data.total*100).toFixed(1)}% of total`;
+  $('sSource').textContent  = data.source;
+}
+
+// ── DATASET SWITCH ──────────────────────────────────────
+function switchDataset(mode) {
+  currentSource = mode;
+  isTestMode = mode === 'test';
+  $('tabMain').classList.toggle('active', mode === 'main');
+  $('tabTest').classList.toggle('active', mode === 'test');
+  $('thActual').style.display = isTestMode ? '' : 'none';
+
+  if (mode === 'test') {
+    $('tableTitle').textContent = 'Test & Verification Scan';
+    $('tableSub').textContent   = 'Predicted label vs actual ground-truth label — confirms the model works correctly';
+  } else {
+    $('tableTitle').textContent = 'Transaction Scan';
+    $('tableSub').textContent   = 'All transactions classified in real-time';
+  }
+  // Reset table
+  allRecords = [];
+  renderTable([]);
+  $('countBadge').textContent = '';
+}
+
+// ── SCAN ───────────────────────────────────────────────
+async function scanTransactions() {
+  setLoader(true, 'Classifying transactions...');
+  $('scanBtn').disabled = true;
+  try {
+    const r = await fetch(`/api/transactions?source=${currentSource}`).then(r=>r.json());
+    allRecords = r.records;
+    updateStatCards({
+      total:       r.total,
+      fraud_count: r.fraud_count,
+      legit_count: r.legit_count,
+      source:      r.source
+    });
+    applyFilters();
+    toast(`Scanned ${r.total.toLocaleString()} transactions — ${r.fraud_count} fraud detected`);
+  } catch(e) { toast('Scan failed: '+e.message, false); }
+  finally { setLoader(false); $('scanBtn').disabled = false; }
+}
+
+// ── FILTERS ────────────────────────────────────────────
+function applyFilters() {
+  const q    = $('searchInput').value.toLowerCase();
+  const lbl  = $('filterLabel').value;
+  const risk = $('filterRisk').value;
+
+  let filtered = allRecords.filter(r => {
+    const matchQ   = !q || r.id.toLowerCase().includes(q) || r.card.toLowerCase().includes(q) || r.merchant.toLowerCase().includes(q);
+    const matchLbl = lbl  === 'all' || r.label === lbl;
+    const matchRsk = risk === 'all' || r.risk  === risk;
+    return matchQ && matchLbl && matchRsk;
+  });
+
+  renderTable(filtered);
+  $('countBadge').textContent = `${filtered.length.toLocaleString()} of ${allRecords.length.toLocaleString()}`;
+}
+
+// ── RENDER TABLE ───────────────────────────────────────
+function renderTable(rows) {
+  const body = $('txBody');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="9"><div class="empty"><div class="empty-icon">${allRecords.length?'🔎':'📋'}</div><p>${allRecords.length?'No transactions match your filters.':'Press <strong>Scan Transactions</strong> to classify the dataset.'}</p></div></td></tr>`;
+    return;
+  }
+
+  body.innerHTML = rows.map(r => {
+    const probColor = r.prob >= 70 ? '#dc2626' : r.prob >= 40 ? '#d97706' : '#16a34a';
+    const probBar   = `<div class="prob-cell">
+      <div class="prob-track"><div class="prob-fill" style="width:${r.prob}%;background:${probColor}"></div></div>
+      <span class="prob-text">${r.prob}%</span>
+    </div>`;
+
+    const labelBadge = r.label === 'FRAUD'
+      ? `<span class="badge badge-fraud">⚠ Fraud</span>`
+      : `<span class="badge badge-legit">✓ Legit</span>`;
+
+    const riskBadge = {
+      HIGH:   `<span class="badge badge-high">High</span>`,
+      MEDIUM: `<span class="badge badge-medium">Medium</span>`,
+      LOW:    `<span class="badge badge-low">Low</span>`,
+    }[r.risk] || '';
+
+    let actualCell = '';
+    if (isTestMode) {
+      if (r.actual === -1) {
+        actualCell = `<td><span class="actual-unknown">—</span></td>`;
+      } else {
+        const actualLabel  = r.actual === 1 ? 'FRAUD' : 'LEGIT';
+        const predictLabel = r.label === 'FRAUD' ? 'FRAUD' : 'LEGIT';
+        const match = actualLabel === predictLabel;
+        actualCell = `<td><span class="${match ? 'actual-match' : 'actual-miss'}">${match ? '✓ Correct' : '✗ Wrong'}<br><small style="font-weight:400;color:var(--text3)">Actual: ${actualLabel}</small></span></td>`;
+      }
+    }
+
+    return `<tr>
+      <td class="td-id">${r.id}</td>
+      <td class="td-time">${r.time}</td>
+      <td class="td-card">${r.card}</td>
+      <td>${r.merchant}</td>
+      <td class="td-amt">$${r.amount.toFixed(2)}</td>
+      <td>${labelBadge}</td>
+      <td>${riskBadge}</td>
+      <td>${probBar}</td>
+      ${actualCell}
+    </tr>`;
+  }).join('');
+}
+
+// ── MANUAL SINGLE CHECK ────────────────────────────────
+async function scanSingle() {
+  const amount = parseFloat($('inAmount').value) || 0;
+  const hour   = parseInt($('inHour').value)    || 0;
+
+  // Build a feature vector (V1-V28 = 0, Amount, Hour)
+  const tx = {};
+  for (let i = 1; i <= 28; i++) tx[`V${i}`] = 0;
+  tx.Amount = amount;
+  tx.Hour   = hour;
+
+  setLoader(true, 'Classifying transaction...');
+  try {
+    const r = await fetch('/api/scan_single', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(tx)
+    }).then(r=>r.json());
+
+    const isFraud = r.is_fraud;
+    const el = $('singleResult');
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div class="result-banner ${isFraud ? 'fraud' : 'legit'}">
+        <div class="result-icon">${isFraud ? '⚠️' : '✅'}</div>
+        <div>
+          <div class="result-title ${isFraud ? 'fraud' : 'legit'}">${isFraud ? 'FRAUD DETECTED' : 'LEGITIMATE TRANSACTION'}</div>
+          <div class="result-sub">
+            Fraud probability: <strong>${r.probability}%</strong> &nbsp;·&nbsp;
+            Risk level: <strong>${r.risk}</strong> &nbsp;·&nbsp;
+            Model threshold: set during training
+          </div>
+        </div>
+      </div>`;
+    toast(isFraud ? 'Fraud detected!' : 'Transaction is legitimate');
+  } catch(e) { toast('Error: '+e.message, false); }
+  finally { setLoader(false); }
+}
+
+function loadFraudExample() {
+  $('inAmount').value = '1850.00';
+  $('inHour').value   = '3';
+  toast('Loaded fraud example — large amount at 3 AM');
+}
+
+// ── BOOT ───────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
